@@ -99,39 +99,85 @@ const collide = ()=>{
         for(let j=0;j<w/4;++j){
             const cell = hexgrid[i][j]
             const {upLeft, upRight, left, right, downLeft, downRight} = cell
-            if(cell.colorIndex()==2){
+            const colorIndex = cell.colorIndex ()
+            if(colorIndex==2||colorIndex==3){
                 if(upLeft&&downRight){
                     cell.upLeft=0
                     cell.downRight=0
                     if(random()>0.5){
+                        if(!(cell.upRight||cell.downLeft)){
                         cell.upRight=1;
                         cell.downLeft=1;
+                        }else{
+                            cell.left=1;
+                        cell.right=1;
+                        }
                     }
                     else{
+                        if(!(cell.left||cell.right)){
                         cell.left=1;
                         cell.right=1;
+                        }else{
+                            cell.upRight=1;
+                        cell.downLeft=1;
+                        }
                     }
                 }else if(upRight&&downLeft){
                     cell.downLeft=0
                     cell.upRight=0
                     if(random()>0.5){
-                        cell.downRight=1;
-                        cell.upLeft=1;
+                        if(!(cell.downRight||cell.upLeft)){
+                            cell.downRight=1;
+                            cell.upLeft=1;
+                        }
+                        else{
+                            cell.left=1;
+                            cell.right=1;
+                        }
                     }
                     else{
-                        cell.left=1;
-                        cell.right=1;
+                        if(!(cell.left||cell.right)){
+                            cell.left=1;
+                            cell.right=1;
+                        }else{
+                            cell.downRight=1;
+                            cell.upLeft=1;
+                        }
                     }
                 }else if(left&&right){
                     cell.left = 0
                     cell.right = 0
                     if(random()>0.5){
+                        if(!(cell.upRight||cell.downLeft)){
                         cell.upRight=1;
                         cell.downLeft=1;
+                        }else{
+                            cell.upLeft=1;
+                            cell.downRight=1;
+                        }
                     }else{
+                         if(!(cell.upLeft||cell.downRight)){
                          cell.upLeft=1;
                          cell.downRight=1;
+                         }else{
+                             cell.upRight=1;
+                        cell.downLeft=1;
+                         }
                     }
+                }else if(cell.upLeft&&cell.right&&cell.downLeft){
+                    cell.upLeft ==0
+                    cell.right=0
+                    cell.downLeft=0
+                    cell.upRight=1
+                    cell.downRight=1
+                    cell.left=1
+                }else if(cell.upRight&&cell.leftt&&cell.downRight){
+                    cell.upLeft ==1
+                    cell.right=1
+                    cell.downLeft=1
+                    cell.upRight=0
+                    cell.downRight=0
+                    cell.left=0
                 }
             }
             //bounce off walls
@@ -188,7 +234,7 @@ const collide = ()=>{
     }
 }
 
-/*todo*/
+
 const propagate = ()=>{
     const newGrid = getHexGrid()
     for(let i=0;i<h/2;++i){
