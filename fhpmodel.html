@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Page Title</title>
+        <style>
+            
+body {
+    margin:0;
+    box-sizing:border-box ;
+    background-color:black;
+}
+
+
+canvas{
+    width:100%;
+}
+        </style>
+    </head>
+    <body>
+        <canvas></canvas>
+        <script>
+            
+let canvas, ctx
+const w = 420
+const h = 550
+let hexgrid
+
+
+function Cell(){
+    //particles directions
+    this.upLeft = 0
+    this.upRight = 0
+    this.left = 0
+    this.right = 0
+    this.downLeft = 0
+    this.downRight = 0
+    this.colorIndex = ()=>{
+        return  this.upLeft
+               +this.upRight
+               +this.left
+               +this.right
+               +this.downLeft
+               +this.downRight
+    }
+}
+
+const getHexGrid = ()=>{
+    const hg = []
+    for(let i = 0;i<h/2;++i){
+        const row = new Array(parseInt(w/4))
+        hg.push(row)
+        for(let j = 0;j<w/4;++j){
+            hg[i][j] = new Cell()
+        }
+    }
+    return hg
+}
+
+const initGrid = ()=>{
+    const {random} = Math
+    const thresh = 0.85
+    hexgrid = getHexGrid()
+    for(let i=0;i<h/2;++i){
+        for(let j=0;j<w/4;++j){
+            const cell = hexgrid[i][j]
+            cell.upLeft = random()>thresh
+            cell.upRight = random()>thresh
+            cell.left = random()>thresh
+            cell.right = random()>thresh
+            cell.downLeft = random()>thresh
+            cell.downRight = random()>thresh
+            if(i>h/2/5&&i<4*h/2/5&&j>w/4/5&&j<4*w/4/5){
+                const dist = Math.abs(Math.hypot(i/2-hexgrid.length/4,j-hexgrid[0].length/2))
+                if(dist<hexgrid.length/8&&dist>hexgrid.length/9){
+                cell.upLeft = 1
+                cell.upRight = 1
+                cell.left = 1
+                cell.right = 1
+                cell.downLeft = 1
+                cell.downRight = 1
+                }
+            }
+        }
+    }
+}
+
+const setPixel = (imageData, x, y, r,g,b)=>{
+    const z = 4*(y*w+x)
+    imageData.data[z] = r
+    imageData.data[z+1] = g
+    imageData.data[z+2] = b
+    imageData.data[z+3] = 255
+}
+
+
+const collide = ()=>{
+    const {random} = Math
+    for(let i=0;i<h/2;++i){
+        for(let j=0;j<w/4;++j){
+            const cell = hexgrid[i][j]
+            const {upLeft, upRight, left, right, downLeft, downRight} = cell
+            if(cell.colorIndex()==2){
+                if(upLeft&&downRight){
+                    cell.upLeft=0
+                    cell.downRight=0
+                    if(random()>0.5){
+                        cell.upRight=1;
+                        cell.downLeft=1;
+                    }
+                    else{
+                        cell.left=1;
+                        cell.right=1;
+                    }
+                }else if(upRight&&downLeft){
+                    cell.downLeft=0
+                    cell.upRight=0
+                    if(random()>0.5){
+                        cell.downRight=1;
+                        cell.upLeft=1;
+                    }
+                    else{
+                        cell.left=1;
+                        cell.right=1;
+                    }
+                }else if(left&&right){
+                    cell.left = 0
+                    cell.right = 0
+                    if(random()>0.5){
+                        cell.upRight=1;
+                        cell.downLeft=1;
+                    }else{
+                         cell.upLeft=1;
+                         cell.downRight=1;
+                    }
+                }
+            }
+            //bounce off walls
+            
+            if(cell.left&&j==0){
+                cell.right = 1
+                cell.left = 0
+            }
+            if(cell.right&&j==parseInt(w/4-1)){
+                cell.left = 1
+                cell.right = 0
+            }
+            
+            if(cell.upLeft&&i==0){
+                cell.downLeft = 1
+                cell.upLeft = 0
+            }
+            
+            if(cell.upLeft&&j==0){
+                cell.upRight = 1
+                cell.upLeft = 0
+            }
+            
+            if(cell.upRight&&i==0){
+                cell.downRight = 1
+                cell.upRight = 0
+            }
+            if(cell.upRight&&j==parseInt(w/4-1)){
+                cell.upLeft = 1
+                cell.upRight =0
+            }
+            
+            
+            
+            if(cell.downLeft&&j==0){
+                cell.downRight = 1
+                cell.downLeft =0
+            }
+            if(cell.downLeft&&i==parseInt(h/2-1)){
+                cell.upLeft = 1
+                cell.downLeft=0
+            }
+            
+            if(cell.downRight&&i==parseInt(h/2-1)){
+                cell.upRight = 1
+                cell.downRight =0
+            }
+            if(cell.downRight&&j==parseInt(w/4-1)){
+                cell.downLeft = 1
+                cell.downRight=0
+            }
+            
+        }
+    }
+}
+
+/*todo*/
+const propagate = ()=>{
+    const newGrid = getHexGrid()
+    for(let i=0;i<h/2;++i){
+        for(let j=0;j<w/4;++j){
+            const cell = hexgrid[i][j]
+            //friction or viscosity
+            if(Math.random()<0.005) continue
+            if(cell.left&&j>0){
+                newGrid[i][j-1].left = 1
+            }
+            if(cell.right&&j<w/4-1){
+                newGrid[i][j+1].right = 1
+            }
+            if(cell.upLeft&&i>0&&(j+(i%2))>0){
+                newGrid[i-1][j-1+(i%2)].upLeft = 1
+            }
+            if(cell.upRight&&i>0&&j<w/4-1){
+                newGrid[i-1][j+(i%2)].upRight = 1
+            }
+            if(cell.downLeft&&i<h/2-1&&(j+(i%2))>0){
+                newGrid[i+1][j-1+(i%2)].downLeft = 1
+            }
+            if(cell.downRight&&i<h/2-1&&j<w/4-1){
+                newGrid[i+1][j+(i%2)].downRight = 1
+            }
+        }
+    }
+    hexgrid = newGrid
+}
+
+
+
+const greens = [0,0,42,128,170,255,255]
+const blues = [0,0,0,0,85,170,255]
+const reds = [0,42,170,255,255,255,255]
+
+const draw = ()=>{
+    const imageData = ctx.createImageData(w,h)
+    for(let i=0;i<h/2;++i){
+        for(let j=0;j<w/4-(i%2);++j){
+            const y = i*2
+            const x = j*4+2*(i%2)
+            const colorIndex = hexgrid[i][j].colorIndex()
+            const r = reds[colorIndex]
+            const g = greens[colorIndex]
+            const b = blues[colorIndex]
+            setPixel(imageData, x+1,y,r,g,b)
+            setPixel(imageData, x,y+1,r,g,b)
+            setPixel(imageData, x+1,y+1,r,g,b)
+            setPixel(imageData, x+2,y+1,r,g,b)
+            setPixel(imageData, x,y+2,r,g,b)
+            setPixel(imageData, x+1,y+2,r,g,b)
+            setPixel(imageData, x+2,y+2,r,g,b)
+            setPixel(imageData, x+1,y+3,r,g,b)
+        }
+    }
+    ctx.putImageData(imageData,0,0)
+    collide()
+    propagate()
+    requestAnimationFrame(draw)
+}
+
+const initCanvas = ()=>{
+    canvas = document.querySelector("canvas")
+    canvas.width = w
+    canvas.height = h
+    ctx = canvas.getContext("2d")
+}
+
+
+const touched = (e)=>{
+    const x = parseInt(e.touches[0].pageX/innerWidth*w)/4
+    const y = parseInt(e.touches[0].pageY/innerWidth*w)/2
+    for(let i=parseInt(y-hexgrid.length/4);i<y+hexgrid.length/4;++i){
+    for(let j=parseInt(x-hexgrid.length/8);j<x+hexgrid.length/8;++j){
+    if(i>=0&&j>=0&&j<w/4&&i<h/2){
+        const dist = Math.abs(Math.hypot((i-y)/2,j-x))
+        if(dist<=hexgrid.length/8&&dist>hexgrid.length/20){
+        const cell = hexgrid[i][j]
+        cell.upLeft = 1
+        cell.upRight = 1
+        cell.left = 1
+        cell.right = 1
+        cell.downLeft = 1
+        cell.downRight = 1
+        }
+    }
+    }
+    }
+}
+
+
+
+const start = ()=>{
+    initCanvas()
+    initGrid()
+    draw()
+    canvas.addEventListener("touchstart", touched)
+}
+
+
+onload = start
+
+
+
+
+
+
+
+
+        </script>
+    </body>
+</html>
